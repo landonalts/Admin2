@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LanChat — Lobby & Global Chat</title>
+<style>
+  /* Your existing styles ... (unchanged) */
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  #app {
+    background: rgba(0,0,0,0.45);
+    border-radius: 16px;
+    max-width: 520px;
+    width: 100%;
+    padding: 2rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    outline: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  input[type="text"]:focus, input[type="password"]:focus {
+    box-shadow: 0 0 8px #ffd369;
+  }
+
+  button {
+    background: #ffd369;
+    border: none;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    border-radius: 12px;
+    font-weight: 700;
+    color: #2d2d2d;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255, 211, 105, 0.6);
+    transition: background 0.3s ease, color 0.3s ease;
+    margin-bottom: 1rem;
+  }
+
+  button:hover {
+    background: #ffb800;
+    color: #1a1a1a;
+  }
+
+  #lobbyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  #lobbyCode {
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: 4px;
+    text-shadow: 0 0 8px #ffd369;
+  }
+
+  #playerCount {
+    font-style: italic;
+    color: #ffd369;
+  }
+
+  #messages {
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    height: 320px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.25);
+    white-space: pre-wrap;
+  }
+
+  .message {
+    margin-bottom: 0.75rem;
+    max-width: 80%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    font-weight: 600;
+    word-wrap: break-word;
+  }
+
+  .message.self {
+    background: #ffd369;
+    color: #2d2d2d;
+    margin-left: auto;
+    box-shadow: 0 1px 5px rgba(255, 211, 105, 0.9);
+  }
+
+  #chatInput {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  /* Bigger chat input box */
+  #chatMessageInput {
+    flex-grow: 1;
+    font-size: 1.2rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    border: none;
+    outline: none;
+    font-weight: 600;
+    min-height: 48px;
+    resize: none;
+    line-height: 1.4;
+  }
+
+  #sendMessageBtn {
+    flex-shrink: 0;
+    width: 100px;
+  }
+
+  #leaveLobbyBtn {
+    background: #e53e3e;
+    margin-top: 1rem;
+    box-shadow: 0 4px 10px rgba(229, 62, 62, 0.7);
+  }
+
+  /* Scrollbar styling */
+  #messages::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 211, 105, 0.6);
+    border-radius: 8px;
+  }
+
+  #messages::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Tabs for chat selection */
+  #chatTabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .tabBtn {
+    flex-grow: 1;
+    padding: 0.5rem 1rem;
+    background: #444;
+    color: #ddd;
+    font-weight: 700;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    text-align: center;
+    transition: background 0.3s ease;
+  }
+
+  .tabBtn.active {
+    background: #ffd369;
+    color: #2d2d2d;
+    box-shadow: 0 4px 10px rgba(255, 211, 105, 0.6);
+  }
+
+  /* Admin GUI */
+  #adminGui {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1rem;
+    color: #ffd369;
+  }
+
+  #lobbyList {
+    margin-top: 0.75rem;
+    max-height: 150px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.25);
+    padding: 0.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+  }
+
+  /* Replace lobbyList with player buttons container */
+  #adminLobbyPlayers {
+    margin-top: 0.5rem;
+  }
+
+  .playerBtn {
+    display: inline-block;
+    background: #ff6b6b;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.25rem 0.75rem;
+    margin: 0.15rem 0.15rem 0.15rem 0;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(229, 62, 62, 0.7);
+    transition: background 0.3s ease;
+  }
+  .playerBtn:hover {
+    background: #e53e3e;
+  }
+
+  /* Admin Login Modal */
+  #adminLoginModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+
+  #adminLoginModal.hidden {
+    display: none;
+  }
+
+  #adminLoginContent {
+    background: #222;
+    padding: 2rem;
+    border-radius: 16px;
+    max-width: 320px;
+    width: 100%;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+    text-align: center;
+  }
+
+  #adminLoginContent h2 {
+    margin-bottom: 1rem;
+    color: #ffd369;
+  }
+
+  #adminLoginContent input {
+    margin-bottom: 1rem;
+  }
+
+  #adminLoginContent button {
+    width: 100%;
+  }
+
+  #adminLogoutBtn {
+    background: #e53e3e;
+    margin-top: 1rem;
+    box-shadow: 0 4px 10px rgba(229, 62, 62, 0.7);
+  }
+
+</style>
+</head>
+<body>
+
+<div id="app">
+  <h1>LanChat</h1>
+
+  <!-- Username input and join/create lobby -->
+  <div id="frontPage">
+    <input type="text" id="nameInput" placeholder="Enter your name (max 20 chars)" maxlength="20" autocomplete="off" />
+    <button id="proceedBtn">Proceed</button>
+    <button id="adminLoginBtn" style="margin-top:10px; background:#333; color:#ffd369; width:auto; padding:0.5rem 1rem; font-weight:700;">Admin Login</button>
+    <button id="adminToggleBtn" style="margin-top:10px; background:#555; color:#ffd369; width:auto; padding:0.5rem 1rem; font-weight:700; display:none;">Toggle Admin Panel</button>
+    <div id="joinCreateLobby" class="hidden" style="margin-top:1rem;">
+      <input type="text" id="lobbyCodeInput" placeholder="Enter lobby code (6 chars)" maxlength="6" autocomplete="off" style="text-transform: uppercase;" />
+      <button id="joinLobbyBtn">Join Lobby</button>
+      <button id="createLobbyBtn">Create Lobby</button>
+    </div>
+  </div>
+
+  <!-- Lobby UI -->
+  <div id="lobbyUi" class="hidden">
+    <div id="lobbyHeader">
+      <div id="lobbyCode">Lobby: <span id="lobbyCodeDisplay"></span></div>
+      <div id="playerCount">Players: <span id="playerCountDisplay">0</span></div>
+    </div>
+
+    <div id="chatTabs">
+      <div id="lobbyChatTab" class="tabBtn active">Lobby Chat</div>
+      <div id="globalChatTab" class="tabBtn">Global Chat</div>
+    </div>
+
+    <div id="messages"></div>
+
+    <div id="chatInput">
+      <textarea id="chatMessageInput" placeholder="Type your message here..." rows="1" maxlength="200"></textarea>
+      <button id="sendMessageBtn">Send</button>
+    </div>
+
+    <button id="leaveLobbyBtn">Leave Lobby</button>
+
+    <!-- Admin GUI -->
+    <div id="adminGui" class="hidden">
+      <h3>Admin Panel</h3>
+      <div>
+        <button id="adminLogoutBtn">Logout Admin</button>
+      </div>
+      <div id="adminLobbyPlayers"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Login Modal -->
+<div id="adminLoginModal" class="hidden">
+  <div id="adminLoginContent">
+    <h2>Admin Login</h2>
+    <input type="text" id="adminUsernameInput" placeholder="Username" autocomplete="off" />
+    <input type="password" id="adminPasswordInput" placeholder="Password" autocomplete="off" />
+    <button id="adminLoginSubmitBtn">Login</button>
+    <div id="adminLoginError" style="color:#ff6b6b; font-weight:700; margin-top:0.5rem; display:none;">Invalid credentials</div>
+  </div>
+</div>
+
+<script>
+  // === Variables & State ===
+  const nameInput = document.getElementById('nameInput');
+  const proceedBtn = document.getElementById('proceedBtn');
+  const frontPage = document.getElementById('frontPage');
+  const joinCreateLobby = document.getElementById('joinCreateLobby');
+  const lobbyCodeInput = document.getElementById('lobbyCodeInput');
+  const joinLobbyBtn = document.getElementById('joinLobbyBtn');
+  const createLobbyBtn = document.getElementById('createLobbyBtn');
+  const lobbyUi = document.getElementById('lobbyUi');
+  const lobbyCodeDisplay = document.getElementById('lobbyCodeDisplay');
+  const playerCountDisplay = document.getElementById('playerCountDisplay');
+  const messagesDiv = document.getElementById('messages');
+  const chatMessageInput = document.getElementById('chatMessageInput');
+  const sendMessageBtn = document.getElementById('sendMessageBtn');
+  const leaveLobbyBtn = document.getElementById('leaveLobbyBtn');
+  const lobbyChatTab = document.getElementById('lobbyChatTab');
+  const globalChatTab = document.getElementById('globalChatTab');
+
+  // Admin Elements
+  const adminLoginBtn = document.getElementById('adminLoginBtn');
+  const adminLoginModal = document.getElementById('adminLoginModal');
+  const adminUsernameInput = document.getElementById('adminUsernameInput');
+  const adminPasswordInput = document.getElementById('adminPasswordInput');
+  const adminLoginSubmitBtn = document.getElementById('adminLoginSubmitBtn');
+  const adminLoginError = document.getElementById('adminLoginError');
+  const adminGui = document.getElementById('adminGui');
+  const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+  const adminToggleBtn = document.getElementById('adminToggleBtn');
+  const adminLobbyPlayers = document.getElementById('adminLobbyPlayers');
+
+  // State
+  let username = '';
+  let lobbyCode = '';
+  let isInLobby = false;
+  let isAdmin = false;
+  let activeChat = 'lobby'; // 'lobby' or 'global'
+
+  // Lobbies and players storage (simulated, in-memory)
+  // Structure: { lobbyCode: { players: [username1, username2, ...] } }
+  let lobbies = {};
+
+  // === Utility Functions ===
+
+  function sanitizeInput(str) {
+    return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function generateLobbyCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  function scrollMessagesToBottom() {
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  // === UI Updates ===
+
+  function showFrontPage() {
+    frontPage.classList.remove('hidden');
+    joinCreateLobby.classList.add('hidden');
+    lobbyUi.classList.add('hidden');
+    adminGui.classList.add('hidden');
+    adminToggleBtn.style.display = 'none';
+  }
+
+  function showJoinCreateLobby() {
+    joinCreateLobby.classList.remove('hidden');
+  }
+
+  function showLobbyUi() {
+    lobbyUi.classList.remove('hidden');
+    frontPage.classList.add('hidden');
+    joinCreateLobby.classList.add('hidden');
+    updateLobbyHeader();
+  }
+
+  function updateLobbyHeader() {
+    lobbyCodeDisplay.textContent = lobbyCode;
+    if (lobbies[lobbyCode]) {
+      playerCountDisplay.textContent = lobbies[lobbyCode].players.length;
+    } else {
+      playerCountDisplay.textContent = '0';
+    }
+  }
+
+  function clearMessages() {
+    messagesDiv.innerHTML = '';
+  }
+
+  function addMessage(text, isSelf = false) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message' + (isSelf ? ' self' : '');
+    msgDiv.textContent = text;
+    messagesDiv.appendChild(msgDiv);
+    scrollMessagesToBottom();
+  }
+
+  // === Lobby & Chat Logic ===
+
+  function joinLobby(code) {
+    code = code.toUpperCase();
+    if (!lobbies[code]) {
+      alert('Lobby code not found.');
+      return false;
+    }
+    if (lobbies[code].players.includes(username)) {
+      alert('You are already in this lobby.');
+      return false;
+    }
+    lobbies[code].players.push(username);
+    lobbyCode = code;
+    isInLobby = true;
+    showLobbyUi();
+    clearMessages();
+    addMessage(`Welcome to lobby ${lobbyCode}`, false);
+    updateLobbyHeader();
+    updateAdminGui();
+    return true;
+  }
+
+  function createLobby() {
+    let code = '';
+    do {
+      code = generateLobbyCode();
+    } while (lobbies[code]);
+    lobbies[code] = { players: [username] };
+    lobbyCode = code;
+    isInLobby = true;
+    showLobbyUi();
+    clearMessages();
+    addMessage(`Lobby ${lobbyCode} created!`, false);
+    updateLobbyHeader();
+    updateAdminGui();
+    return code;
+  }
+
+  function leaveLobby() {
+    if (!isInLobby) return;
+    let index = lobbies[lobbyCode].players.indexOf(username);
+    if (index !== -1) {
+      lobbies[lobbyCode].players.splice(index, 1);
+      // Remove lobby if empty
+      if (lobbies[lobbyCode].players.length === 0) {
+        delete lobbies[lobbyCode];
+      }
+    }
+    lobbyCode = '';
+    isInLobby = false;
+    showFrontPage();
+    clearMessages();
+    updateAdminGui();
+  }
+
+  function sendMessage(text) {
+    text = text.trim();
+    if (text.length === 0) return;
+    let sanitizedText = sanitizeInput(text);
+    if (activeChat === 'lobby' && isInLobby) {
+      addMessage(`${username} (Lobby): ${sanitizedText}`, username === username);
+    } else if (activeChat === 'global') {
+      addMessage(`${username} (Global): ${sanitizedText}`, username === username);
+    }
+    chatMessageInput.value = '';
+  }
+
+  // === Admin Logic ===
+
+  function checkAdminCredentials(usernameInput, passwordInput) {
+    return usernameInput === 'admin' && passwordInput === 'admin123';
+  }
+
+  function showAdminLoginModal() {
+    adminLoginModal.classList.remove('hidden');
+    adminLoginError.style.display = 'none';
+    adminUsernameInput.value = '';
+    adminPasswordInput.value = '';
+    adminUsernameInput.focus();
+  }
+
+  function hideAdminLoginModal() {
+    adminLoginModal.classList.add('hidden');
+  }
+
+  function updateAdminGui() {
+    if (isAdmin) {
+      adminGui.classList.remove('hidden');
+      adminToggleBtn.style.display = 'inline-block';
+      updateAdminLobbyPlayers();
+    } else {
+      adminGui.classList.add('hidden');
+      adminToggleBtn.style.display = 'none';
+      adminLobbyPlayers.innerHTML = '';
+    }
+  }
+
+  function handleAdminLogin() {
+    const usernameInput = adminUsernameInput.value.trim();
+    const passwordInput = adminPasswordInput.value.trim();
+    if (checkAdminCredentials(usernameInput, passwordInput)) {
+      isAdmin = true;
+      updateAdminGui();
+      hideAdminLoginModal();
+    } else {
+      adminLoginError.style.display = 'block';
+    }
+  }
+
+  function adminLogout() {
+    isAdmin = false;
+    updateAdminGui();
+    alert('Admin logged out.');
+  }
+
+  function updateAdminLobbyPlayers() {
+    adminLobbyPlayers.innerHTML = ''; // Clear current list
+    if (Object.keys(lobbies).length === 0) {
+      adminLobbyPlayers.textContent = 'No active lobbies.';
+      return;
+    }
+    for (const code in lobbies) {
+      const lobbyTitle = document.createElement('div');
+      lobbyTitle.textContent = `Lobby ${code} (${lobbies[code].players.length} player${lobbies[code].players.length !== 1 ? 's' : ''}):`;
+      lobbyTitle.style.fontWeight = '700';
+      lobbyTitle.style.marginTop = '10px';
+      adminLobbyPlayers.appendChild(lobbyTitle);
+
+      lobbies[code].players.forEach(player => {
+        const playerBtn = document.createElement('button');
+        playerBtn.className = 'playerBtn';
+        playerBtn.textContent = player;
+        playerBtn.title = `Ban player ${player} from lobby ${code}`;
+        playerBtn.onclick = () => {
+          if (confirm(`Ban player "${player}" from lobby ${code}?`)) {
+            banPlayerFromLobby(code, player);
+          }
+        };
+        adminLobbyPlayers.appendChild(playerBtn);
+      });
+    }
+  }
+
+  function banPlayerFromLobby(code, playerName) {
+    if (!lobbies[code]) return;
+    const idx = lobbies[code].players.indexOf(playerName);
+    if (idx !== -1) {
+      lobbies[code].players.splice(idx, 1);
+      if (lobbies[code].players.length === 0) {
+        delete lobbies[code];
+      }
+      // If current user is banned, force leave lobby UI
+      if (playerName === username && code === lobbyCode) {
+        alert('You were banned from this lobby.');
+        leaveLobby();
+      }
+      updateLobbyHeader();
+      updateAdminLobbyPlayers();
+    }
+  }
+
+  // === Event Listeners ===
+
+  proceedBtn.addEventListener('click', () => {
+    const enteredName = nameInput.value.trim();
+    if (enteredName.length === 0 || enteredName.length > 20) {
+      alert('Please enter a name (max 20 characters).');
+      return;
+    }
+    username = enteredName;
+    showJoinCreateLobby();
+    proceedBtn.disabled = true;
+    nameInput.disabled = true;
+  });
+
+  joinLobbyBtn.addEventListener('click', () => {
+    const code = lobbyCodeInput.value.trim().toUpperCase();
+    if (code.length !== 6) {
+      alert('Please enter a valid 6-character lobby code.');
+      return;
+    }
+    joinLobby(code);
+  });
+
+  createLobbyBtn.addEventListener('click', () => {
+    createLobby();
+  });
+
+  leaveLobbyBtn.addEventListener('click', () => {
+    leaveLobby();
+  });
+
+  sendMessageBtn.addEventListener('click', () => {
+    sendMessage(chatMessageInput.value);
+  });
+
+  chatMessageInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(chatMessageInput.value);
+    }
+  });
+
+  lobbyChatTab.addEventListener('click', () => {
+    activeChat = 'lobby';
+    lobbyChatTab.classList.add('active');
+    globalChatTab.classList.remove('active');
+    clearMessages();
+  });
+
+  globalChatTab.addEventListener('click', () => {
+    activeChat = 'global';
+    globalChatTab.classList.add('active');
+    lobbyChatTab.classList.remove('active');
+    clearMessages();
+  });
+
+  // Admin Login button and modal
+  adminLoginBtn.addEventListener('click', () => {
+    showAdminLoginModal();
+  });
+
+  adminLoginSubmitBtn.addEventListener('click', () => {
+    handleAdminLogin();
+  });
+
+  adminLogoutBtn.addEventListener('click', () => {
+    adminLogout();
+  });
+
+  adminToggleBtn.addEventListener('click', () => {
+    if (adminGui.classList.contains('hidden')) {
+      adminGui.classList.remove('hidden');
+    } else {
+      adminGui.classList.add('hidden');
+    }
+  });
+
+  // Allow pressing Enter in admin login modal to submit
+  adminUsernameInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdminLogin();
+    }
+  });
+  adminPasswordInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdminLogin();
+    }
+  });
+
+  // === Initialize UI ===
+  showFrontPage();
+
+</script>
+
+</body>
+</html
